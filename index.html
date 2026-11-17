@@ -14,12 +14,22 @@
     <section id="home" class="screen">
       <header class="hero">
         <h1>Trivia Flash Cards</h1>
-        <p class="muted">Pick a category, choose a timer, and start flipping.</p>
+        <p class="muted">Pick a section, category, and difficulty, choose a timer, and start flipping.</p>
       </header>
 
       <div class="panel">
+        <h2>Section</h2>
+        <div id="sections" class="choices" role="radiogroup" aria-label="Section"></div>
+      </div>
+
+      <div class="panel" id="category-panel">
         <h2>Category</h2>
         <div id="categories" class="choices" role="radiogroup" aria-label="Category"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Difficulty</h2>
+        <div id="levels" class="choices" role="radiogroup" aria-label="Difficulty"></div>
       </div>
 
       <div class="panel">
@@ -78,7 +88,8 @@
     </section>
 
   </main>
-  <script src="questions.js"></script>
+  <script src="data/general.js"></script>
+  <script src="data/harry-potter.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
