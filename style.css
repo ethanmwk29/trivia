@@ -15,8 +15,10 @@
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
   color-scheme: light;
 }
+/* Dark palette: used when the device prefers dark (unless Light is forced),
+   or when Dark is chosen with the theme button. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #141413;
     --surface: #1d1c1a;
     --surface-2: #262522;
@@ -32,12 +34,28 @@
     color-scheme: dark;
   }
 }
+:root[data-theme="dark"] {
+  --bg: #141413;
+  --surface: #1d1c1a;
+  --surface-2: #262522;
+  --text: #ecebe6;
+  --muted: #a29e94;
+  --border: #36342f;
+  --accent: #a197f7;
+  --accent-soft: #29254a;
+  --on-accent: #141413;
+  --answer: #5cc08a;
+  --answer-soft: #17301f;
+  --warn: #f0a067;
+  color-scheme: dark;
+}
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body {
   overflow-x: clip;
   margin: 0;
+  transition: background-color 0.2s, color 0.2s;
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
@@ -47,6 +65,23 @@ body {
 .muted { color: var(--muted); }
 .small { font-size: 0.875rem; }
 
+.hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.theme-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: inherit; font-size: 0.875rem; font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.theme-toggle:hover { border-color: var(--muted); }
+.theme-icon { font-size: 1rem; line-height: 1; }
+.hero .theme-toggle { margin-top: 6px; flex-shrink: 0; }
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar .theme-toggle { padding: 5px 9px; }
+.tag { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .hero h1 { margin: 0 0 4px; font-size: 2rem; letter-spacing: -0.02em; }
 .hero p { margin: 0 0 24px; }
 
@@ -119,7 +154,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Play screen */
 .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; }
 .topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.btn-sm { padding: 5px 12px; font-size: 0.875rem; font-weight: 600; }
+.btn-sm { white-space: nowrap; padding: 5px 12px; font-size: 0.875rem; font-weight: 600; }
 .btn:disabled { opacity: 0.4; cursor: default; }
 .btn:disabled:hover { border-color: var(--border); }
 .tag { background: var(--accent-soft); color: var(--accent); padding: 4px 12px; border-radius: 999px; font-size: 0.875rem; font-weight: 600; }
@@ -191,6 +226,13 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .hint { text-align: center; margin-top: 14px; }
 
 @media (max-width: 480px) {
+  .hero h1 { font-size: 1.7rem; }
+  /* Play bar: Home · progress · theme on one row, the category label below. */
+  .topbar { flex-wrap: wrap; row-gap: 10px; }
+  .topbar-left { display: contents; }
+  #home-btn { order: 1; }
+  .topbar-right { order: 2; }
+  .tag { order: 3; max-width: 100%; }
   .wrap { padding-top: 20px; }
   .face { min-height: 260px; padding: 40px 18px 22px; }
   .card-text { font-size: 1.2rem; }
