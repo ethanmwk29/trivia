@@ -42,10 +42,14 @@
     <!-- Card screen -->
     <section id="play" class="screen" hidden>
       <div class="topbar">
-        <span id="cat-label" class="tag"></span>
+        <div class="topbar-left">
+          <button type="button" id="home-btn" class="btn btn-sm">⌂ Home</button>
+          <span id="cat-label" class="tag"></span>
+        </div>
         <span id="progress" class="muted small"></span>
       </div>
 
+      <div class="card-stage">
       <div class="card" id="card">
         <div class="card-inner">
           <div class="face front" aria-hidden="false">
@@ -63,13 +67,14 @@
           </div>
         </div>
       </div>
+      </div>
 
       <div class="controls">
-        <button type="button" id="home-btn" class="btn">Home</button>
+        <button type="button" id="back-btn" class="btn">← Back</button>
         <button type="button" id="flip-btn" class="btn primary">Reveal answer</button>
         <button type="button" id="next-btn" class="btn">Next →</button>
       </div>
-      <p class="muted small hint">Keys: Space flips · → next · Esc home</p>
+      <p class="muted small hint">Keys: Space flips · ← → back / next · Esc home</p>
     </section>
 
   </main>

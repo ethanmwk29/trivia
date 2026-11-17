@@ -12,7 +12,7 @@
     catLabel: $('cat-label'), progress: $('progress'), card: $('card'),
     question: $('question'), answer: $('answer'), catOfQ: $('cat-of-q'),
     timer: $('timer'), timerBar: $('timer-bar'), timerText: $('timer-text'),
-    flipBtn: $('flip-btn'), nextBtn: $('next-btn'), homeBtn: $('home-btn'),
+    flipBtn: $('flip-btn'), nextBtn: $('next-btn'), backBtn: $('back-btn'), homeBtn: $('home-btn'),
   };
   const front = els.card.querySelector('.front');
   const back = els.card.querySelector('.back');
@@ -69,15 +69,19 @@
     }
     return arr;
   }
-  function buildDeck() {
+  // `deck` is the whole session's history: each round is a fresh shuffle of
+  // the chosen questions appended to the end, so Back works across reshuffles.
+  let roundSize = 0, seenUpTo = -1;
+  function addRound() {
     const cats = prefs.category === ALL ? Object.keys(BANK) : [prefs.category];
     const cards = [];
     for (const c of cats) for (const item of BANK[c]) cards.push({ ...item, category: c });
-    const last = deck[idx];
-    deck = shuffle(cards);
+    shuffle(cards);
     // Avoid showing the same card twice in a row across a reshuffle.
-    if (last && deck.length > 1 && deck[0].q === last.q) [deck[0], deck[1]] = [deck[1], deck[0]];
-    idx = 0;
+    const last = deck[deck.length - 1];
+    if (last && cards.length > 1 && cards[0].q === last.q) [cards[0], cards[1]] = [cards[1], cards[0]];
+    roundSize = cards.length;
+    deck.push(...cards);
   }
 
   // ---- Card state + timer
@@ -90,7 +94,7 @@
     els.card.classList.toggle('flipped', v);
     front.setAttribute('aria-hidden', String(v));
     back.setAttribute('aria-hidden', String(!v));
-    els.flipBtn.textContent = v ? '← Back to question' : 'Reveal answer';
+    els.flipBtn.textContent = v ? 'Show question' : 'Reveal answer';
   }
 
   function stopTimer() {
@@ -99,7 +103,7 @@
   }
 
   function tick() {
-    const left = Math.max(0, deadline - Date.now());
+    const left = Math.min(prefs.seconds * 1000, Math.max(0, deadline - Date.now()));
     const frac = left / (prefs.seconds * 1000);
     els.timerBar.style.transform = `scaleX(${frac})`;
     els.timerText.textContent = Math.ceil(left / 1000) + 's';
@@ -118,21 +122,38 @@
     els.timerText.textContent = label;
   }
 
-  function showCard() {
+  const PAGE_TURN_MS = 650;
+  const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // `delay` holds the timer at full for that long (used while the old page
+  // is still turning away, so it doesn't eat into the new question's time).
+  function showCard(delay = 0) {
     stopTimer();
     const item = deck[idx];
+    // Reset to the question side instantly: the page turn covers the swap.
+    els.card.classList.add('instant');
     setFlipped(false);
+    void els.card.offsetWidth;
+    els.card.classList.remove('instant');
     els.question.textContent = item.q;
     els.answer.textContent = item.a;
     els.catOfQ.textContent = item.category;
     els.catLabel.textContent = prefs.category === ALL ? 'All categories' : prefs.category;
-    els.progress.textContent = `${idx + 1} / ${deck.length}`;
+    els.progress.textContent = `${(idx % roundSize) + 1} / ${roundSize}`;
+    els.backBtn.disabled = idx === 0;
 
     els.timer.hidden = !prefs.timerOn;
     els.timer.classList.remove('done', 'low');
-    if (prefs.timerOn) {
+    // Only a card you haven't seen yet gets a timer; revisiting one (with
+    // Back, or Next after Back) never restarts it.
+    const fresh = idx > seenUpTo;
+    seenUpTo = Math.max(seenUpTo, idx);
+    if (prefs.timerOn && !fresh) {
+      els.timerBar.style.transform = 'scaleX(0)';
+      finishTimer('Already seen');
+    } else if (prefs.timerOn) {
       timerDone = false;
-      deadline = Date.now() + prefs.seconds * 1000;
+      deadline = Date.now() + delay + prefs.seconds * 1000;
       tick();
       timerId = setInterval(tick, 100);
     } else {
@@ -140,20 +161,55 @@
     }
   }
 
-  // Swap the card content only once it has turned back to the question side,
-  // so the next answer never flashes during the flip animation.
+  // Page turns use snapshots of the card: a clone of the side that's
+  // showing, laid over the real card and animated, then thrown away.
+  function snapshot(cls) {
+    const page = els.card.cloneNode(true);
+    page.querySelector(flipped ? '.front' : '.back').remove();
+    page.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'));
+    page.removeAttribute('id');
+    page.classList.add('page', cls);
+    page.setAttribute('aria-hidden', 'true');
+    els.card.parentElement.append(page);
+    return page;
+  }
+  function clearPages() {
+    document.querySelectorAll('.page').forEach(n => n.remove());
+  }
+  function whenTurned(page, fn) {
+    let done = false;
+    const finish = () => { if (!done) { done = true; fn(); } };
+    page.addEventListener('animationend', finish);
+    setTimeout(finish, PAGE_TURN_MS + 200); // in case animationend never fires
+  }
+
+  // Next: the old card swings away around its left edge, uncovering the
+  // next question, which is already in place underneath.
   function next() {
-    const go = () => {
-      idx += 1;
-      if (idx >= deck.length) buildDeck();
-      showCard();
-    };
-    if (flipped) {
-      stopTimer();
-      setFlipped(false);
-      els.question.textContent = '';
-      setTimeout(go, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 280);
-    } else go();
+    clearPages();
+    const animate = !reducedMotion();
+    if (animate) {
+      const page = snapshot('page-turn');
+      whenTurned(page, () => page.remove());
+    }
+    idx += 1;
+    if (idx >= deck.length) addRound();
+    showCard(animate ? PAGE_TURN_MS : 0);
+  }
+
+  // Back: the reverse. The previous card swings back in from the left and
+  // lands on top of the current one.
+  function prev() {
+    if (idx === 0) return;
+    clearPages();
+    const animate = !reducedMotion();
+    const under = animate ? snapshot('page-under') : null;
+    idx -= 1;
+    showCard();
+    if (animate) {
+      const page = snapshot('page-return');
+      whenTurned(page, () => { page.remove(); under.remove(); });
+    }
   }
 
   function toggleFlip() {
@@ -163,6 +219,7 @@
 
   function goHome() {
     stopTimer();
+    clearPages();
     els.play.hidden = true;
     els.home.hidden = false;
     renderHome();
@@ -170,8 +227,8 @@
   }
 
   function start() {
-    deck = []; idx = 0;
-    buildDeck();
+    deck = []; idx = 0; seenUpTo = -1;
+    addRound();
     els.home.hidden = true;
     els.play.hidden = false;
     showCard();
@@ -182,6 +239,7 @@
   els.flipBtn.addEventListener('click', toggleFlip);
   els.card.addEventListener('click', toggleFlip);
   els.nextBtn.addEventListener('click', next);
+  els.backBtn.addEventListener('click', prev);
   els.homeBtn.addEventListener('click', goHome);
 
   document.addEventListener('keydown', (e) => {
@@ -190,6 +248,7 @@
       if (e.target.tagName === 'BUTTON' && e.target !== els.flipBtn) return; // let focused buttons act normally
       e.preventDefault(); toggleFlip();
     } else if (e.key === 'ArrowRight') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); prev(); }
     else if (e.key === 'Escape') { goHome(); }
   });
 
