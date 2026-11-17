@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trivia Flash Cards</title>
+  <meta name="description" content="Randomized trivia flash cards with an optional auto-reveal timer.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="wrap">
+
+    <!-- Home screen -->
+    <section id="home" class="screen">
+      <header class="hero">
+        <h1>Trivia Flash Cards</h1>
+        <p class="muted">Pick a category, choose a timer, and start flipping.</p>
+      </header>
+
+      <div class="panel">
+        <h2>Category</h2>
+        <div id="categories" class="choices" role="radiogroup" aria-label="Category"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Timer</h2>
+        <div class="choices" role="radiogroup" aria-label="Timer mode">
+          <button type="button" class="choice" data-timer="off" role="radio">No timer</button>
+          <button type="button" class="choice" data-timer="on" role="radio">Auto-reveal</button>
+        </div>
+        <div id="timer-settings" class="stepper" hidden>
+          <button type="button" id="time-down" class="icon-btn" aria-label="5 seconds less">−</button>
+          <output id="time-value" aria-live="polite">15s</output>
+          <button type="button" id="time-up" class="icon-btn" aria-label="5 seconds more">+</button>
+          <span class="muted small">The answer flips over when time runs out.</span>
+        </div>
+      </div>
+
+      <button type="button" id="start" class="btn primary big">Start</button>
+    </section>
+
+    <!-- Card screen -->
+    <section id="play" class="screen" hidden>
+      <div class="topbar">
+        <span id="cat-label" class="tag"></span>
+        <span id="progress" class="muted small"></span>
+      </div>
+
+      <div class="card" id="card">
+        <div class="card-inner">
+          <div class="face front" aria-hidden="false">
+            <span class="face-label">Question</span>
+            <p id="question" class="card-text"></p>
+            <div id="timer" class="timer" hidden>
+              <div class="timer-track"><div id="timer-bar" class="timer-bar"></div></div>
+              <span id="timer-text" class="small"></span>
+            </div>
+          </div>
+          <div class="face back" aria-hidden="true">
+            <span class="face-label">Answer</span>
+            <p id="answer" class="card-text"></p>
+            <span id="cat-of-q" class="muted small"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button type="button" id="home-btn" class="btn">Home</button>
+        <button type="button" id="flip-btn" class="btn primary">Reveal answer</button>
+        <button type="button" id="next-btn" class="btn">Next →</button>
+      </div>
+      <p class="muted small hint">Keys: Space flips · → next · Esc home</p>
+    </section>
+
+  </main>
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
