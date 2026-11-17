@@ -3,7 +3,7 @@
 A small static web app for practicing trivia as flip cards. Live at **https://ethanmwk29.github.io/trivia/**.
 
 ## Features
-- 100 questions across 5 categories: History, Geography, Science & Nature, Sports, Entertainment (20 each)
+- 120 questions across 6 categories: History, Geography, Science & Nature, Sports, Entertainment, Harry Potter (20 each)
 - Shuffle one category, or all categories together. Each deck runs through every question once, then reshuffles
 - Click the card (or **Reveal answer**) to flip it, then flip it back to see the question again
 - **Next** and **Back** turn the page (an animated page turn), and Back steps through every card you've seen this session. **Home** is in the top bar. Keyboard: Space flips, ← / → go back and next, Esc goes home
