@@ -10,6 +10,7 @@
   const els = {
     home: $('home'), play: $('play'), sections: $('sections'),
     categoryPanel: $('category-panel'), categories: $('categories'), levels: $('levels'),
+    selectAll: $('select-all'), clearAll: $('clear-all'), startHint: $('start-hint'),
     timerSettings: $('timer-settings'), timeValue: $('time-value'),
     timeDown: $('time-down'), timeUp: $('time-up'), start: $('start'),
     catLabel: $('cat-label'), progress: $('progress'), card: $('card'),
@@ -21,25 +22,33 @@
   const back = els.card.querySelector('.back');
 
   // ---- Preferences (remembered per browser; works fine if storage is blocked)
-  // `category` is remembered per section.
-  const prefs = { section: SECTIONS[0].id, category: {}, level: ALL, timerOn: false, seconds: 15 };
+  // `cats` holds the selected categories per section; a section with no
+  // saved entry starts with all of its categories selected.
+  const prefs = { section: SECTIONS[0].id, cats: {}, level: ALL, timerOn: false, seconds: 15 };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY)) || {}); } catch { /* ignore */ }
   if (!SECTIONS.some(sec => sec.id === prefs.section)) prefs.section = SECTIONS[0].id;
   if (prefs.level !== ALL && !LEVELS.includes(prefs.level)) prefs.level = ALL;
   prefs.seconds = Math.min(MAX_T, Math.max(MIN_T, Math.round(prefs.seconds / STEP_T) * STEP_T || 15));
+  if (!prefs.cats || typeof prefs.cats !== 'object') prefs.cats = {};
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ } };
 
   const section = () => SECTIONS.find(sec => sec.id === prefs.section);
-  function category() {
-    const c = prefs.category[prefs.section];
-    return c && section().categories[c] ? c : ALL;
+  const allCats = (sec) => Object.keys(sec.categories);
+  // The selected categories for the current section, in display order.
+  function selectedCats() {
+    const sec = section();
+    const names = allCats(sec);
+    if (names.length < 2) return names; // nothing to choose between
+    const saved = prefs.cats[sec.id];
+    return Array.isArray(saved) ? names.filter(n => saved.includes(n)) : names;
   }
+  function setSelected(list) { prefs.cats[prefs.section] = list; }
 
-  // The questions matching a section / category / difficulty choice.
-  function pool(sec, cat, level) {
+  // The questions matching a section / categories / difficulty choice.
+  function pool(sec, cats, level) {
     const cards = [];
     for (const [name, byLevel] of Object.entries(sec.categories)) {
-      if (cat !== ALL && cat !== name) continue;
+      if (!cats.includes(name)) continue;
       for (const lv of LEVELS) {
         if (level !== ALL && level !== lv) continue;
         for (const [q, a] of byLevel[lv] || []) cards.push({ q, a, category: name, level: lv });
@@ -64,28 +73,35 @@
 
   function renderHome() {
     const sec = section();
-    const cat = category();
+    const cats = selectedCats();
     els.sections.querySelectorAll('.choice').forEach(b => {
       const s = SECTIONS.find(x => x.id === b.dataset.section);
       b.setAttribute('aria-checked', String(s === sec));
-      b.querySelector('.count').textContent = pool(s, ALL, prefs.level).length;
+      b.querySelector('.count').textContent = pool(s, allCats(s), prefs.level).length;
     });
 
-    // Category chips are rebuilt per section; a one-category section skips them.
-    const names = Object.keys(sec.categories);
+    // Category toggles are rebuilt per section; a one-category section skips them.
+    const names = allCats(sec);
     els.categoryPanel.hidden = names.length < 2;
-    els.categories.replaceChildren(
-      ...[[ALL, 'All categories'], ...names.map(n => [n, n])].map(([value, label]) => {
-        const b = choiceButton(label, { category: value });
-        b.setAttribute('aria-checked', String(value === cat));
-        b.querySelector('.count').textContent = pool(sec, value, prefs.level).length;
-        return b;
-      }));
+    els.categories.replaceChildren(...names.map(n => {
+      const b = choiceButton(n, { category: n });
+      b.setAttribute('role', 'checkbox');
+      b.setAttribute('aria-checked', String(cats.includes(n)));
+      b.querySelector('.count').textContent = pool(sec, [n], prefs.level).length;
+      return b;
+    }));
+    els.selectAll.disabled = cats.length === names.length;
+    els.clearAll.disabled = cats.length === 0;
 
     els.levels.querySelectorAll('.choice').forEach(b => {
       b.setAttribute('aria-checked', String(b.dataset.level === prefs.level));
-      b.querySelector('.count').textContent = pool(sec, cat, b.dataset.level).length;
+      b.querySelector('.count').textContent = pool(sec, cats, b.dataset.level).length;
     });
+
+    const total = pool(sec, cats, prefs.level).length;
+    els.start.disabled = total === 0;
+    els.start.textContent = total ? `Start · ${total} questions` : 'Start';
+    els.startHint.hidden = cats.length > 0;
 
     document.querySelectorAll('[data-timer]').forEach(b =>
       b.setAttribute('aria-checked', String((b.dataset.timer === 'on') === prefs.timerOn)));
@@ -100,7 +116,12 @@
     if (b) { fn(b.dataset); savePrefs(); renderHome(); }
   });
   onChoice(els.sections, d => { prefs.section = d.section; });
-  onChoice(els.categories, d => { prefs.category[prefs.section] = d.category; });
+  onChoice(els.categories, d => {
+    const cur = selectedCats();
+    setSelected(cur.includes(d.category) ? cur.filter(n => n !== d.category) : [...cur, d.category]);
+  });
+  els.selectAll.addEventListener('click', () => { setSelected(allCats(section())); savePrefs(); renderHome(); });
+  els.clearAll.addEventListener('click', () => { setSelected([]); savePrefs(); renderHome(); });
   onChoice(els.levels, d => { prefs.level = d.level; });
   document.querySelectorAll('[data-timer]').forEach(b => b.addEventListener('click', () => {
     prefs.timerOn = b.dataset.timer === 'on'; savePrefs(); renderHome();
@@ -121,7 +142,7 @@
   // the chosen questions appended to the end, so Back works across reshuffles.
   let roundSize = 0, seenUpTo = -1;
   function addRound() {
-    const cards = shuffle(pool(section(), category(), prefs.level));
+    const cards = shuffle(pool(section(), selectedCats(), prefs.level));
     // Avoid showing the same card twice in a row across a reshuffle.
     const last = deck[deck.length - 1];
     if (last && cards.length > 1 && cards[0].q === last.q) [cards[0], cards[1]] = [cards[1], cards[0]];
@@ -182,13 +203,14 @@
     els.card.classList.remove('instant');
     els.question.textContent = item.q;
     els.answer.textContent = item.a;
-    const sec = section(), cat = category();
-    const many = Object.keys(sec.categories).length > 1;
+    const sec = section(), cats = selectedCats();
+    const many = allCats(sec).length > 1;
     els.catOfQ.textContent = (many ? item.category + ' · ' : '') + LEVEL_NAMES[item.level];
-    els.catLabel.textContent = [
-      many ? (cat === ALL ? sec.name : cat) : sec.name,
-      LEVEL_NAMES[prefs.level],
-    ].join(' · ');
+    const scope = !many || cats.length === allCats(sec).length ? sec.name
+      : cats.length <= 2 ? cats.join(' + ')
+      : `${cats.length} categories`;
+    els.catLabel.textContent = `${scope} · ${LEVEL_NAMES[prefs.level]}`;
+    els.catLabel.title = many ? cats.join(', ') : '';
     els.progress.textContent = `${(idx % roundSize) + 1} / ${roundSize}`;
     els.backBtn.disabled = idx === 0;
 
@@ -277,6 +299,7 @@
   }
 
   function start() {
+    if (!pool(section(), selectedCats(), prefs.level).length) return;
     deck = []; idx = 0; seenUpTo = -1;
     addRound();
     els.home.hidden = true;

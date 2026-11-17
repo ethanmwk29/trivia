@@ -14,7 +14,7 @@
     <section id="home" class="screen">
       <header class="hero">
         <h1>Trivia Flash Cards</h1>
-        <p class="muted">Pick a section, category, and difficulty, choose a timer, and start flipping.</p>
+        <p class="muted">Pick a section, categories, and difficulty, choose a timer, and start flipping.</p>
       </header>
 
       <div class="panel">
@@ -23,8 +23,15 @@
       </div>
 
       <div class="panel" id="category-panel">
-        <h2>Category</h2>
-        <div id="categories" class="choices" role="radiogroup" aria-label="Category"></div>
+        <div class="panel-head">
+          <h2>Categories</h2>
+          <div class="panel-actions">
+            <button type="button" id="select-all" class="link-btn">Select all</button>
+            <button type="button" id="clear-all" class="link-btn">Clear</button>
+          </div>
+        </div>
+        <p class="muted small panel-note">Questions are shuffled across every category you select.</p>
+        <div id="categories" class="choices" role="group" aria-label="Categories"></div>
       </div>
 
       <div class="panel">
@@ -47,6 +54,7 @@
       </div>
 
       <button type="button" id="start" class="btn primary big">Start</button>
+      <p id="start-hint" class="start-hint small" hidden>Select at least one category to start.</p>
     </section>
 
     <!-- Card screen -->

@@ -60,6 +60,21 @@ body {
 .panel h2 { margin: 0 0 12px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
 
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.panel-head h2 { margin: 0; }
+.panel-actions { display: flex; gap: 4px; }
+.panel-note { margin: 0 0 12px; }
+.link-btn {
+  font: inherit; font-size: 0.875rem; font-weight: 600;
+  padding: 4px 8px; border: 0; border-radius: 6px;
+  background: none; color: var(--accent); cursor: pointer;
+}
+.link-btn:hover { background: var(--accent-soft); }
+.link-btn:disabled { color: var(--muted); opacity: 0.5; cursor: default; background: none; }
+.choice[role="checkbox"]::before { content: "+ "; opacity: 0.6; }
+.choice[role="checkbox"][aria-checked="true"]::before { content: "✓ "; opacity: 1; }
+.btn.primary:disabled { opacity: 0.45; cursor: default; }
+.start-hint { text-align: center; color: var(--warn); margin: 10px 0 0; }
 .choice {
   font: inherit;
   padding: 8px 14px;
