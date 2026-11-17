@@ -6,7 +6,7 @@ A small static web app for practicing trivia as flip cards. Live at **https://et
 - 720 questions in two sections, each question tagged easy, medium, or hard:
   - **General Trivia** (600): History, Geography, Science & Nature, Sports, Entertainment — 120 each (40 per difficulty)
   - **Harry Potter** (120): 40 per difficulty
-- Pick a section, then (in General Trivia) toggle any combination of categories, with **Select all** and **Clear** shortcuts. Questions are shuffled across every selected category. Then pick a difficulty: Easy, Medium, Hard, or Random (all three mixed). Each deck runs through every matching question once, then reshuffles
+- Pick a section — **All** (every question from every section; the category picker is hidden), **General Trivia**, or **Harry Potter** — then (in General Trivia) toggle any combination of categories, with **Select all** and **Clear** shortcuts. Questions are shuffled across every selected category. Then pick a difficulty: Easy, Medium, Hard, or Random (all three mixed). Each deck runs through every matching question once, then reshuffles
 - Click the card (or **Reveal answer**) to flip it, then flip it back to see the question again
 - **Next** and **Back** turn the page (an animated page turn), and Back steps through every card you've seen this session. **Home** is in the top bar. Keyboard: Space flips, ← / → go back and next, Esc goes home
 - Timer modes:

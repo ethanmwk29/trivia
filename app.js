@@ -6,6 +6,15 @@
   const MIN_T = 5, MAX_T = 120, STEP_T = 5;
   const PREFS_KEY = 'trivia-prefs-v2';
 
+  // "All" is a virtual section holding every category of every real section.
+  const ALL_SECTION = {
+    id: ALL,
+    name: 'All sections',
+    label: 'All',
+    categories: Object.assign({}, ...SECTIONS.map(sec => sec.categories)),
+  };
+  const SECTION_CHOICES = [ALL_SECTION, ...SECTIONS];
+
   const $ = (id) => document.getElementById(id);
   const els = {
     home: $('home'), play: $('play'), sections: $('sections'),
@@ -26,19 +35,19 @@
   // saved entry starts with all of its categories selected.
   const prefs = { section: SECTIONS[0].id, cats: {}, level: ALL, timerOn: false, seconds: 15 };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(PREFS_KEY)) || {}); } catch { /* ignore */ }
-  if (!SECTIONS.some(sec => sec.id === prefs.section)) prefs.section = SECTIONS[0].id;
+  if (!SECTION_CHOICES.some(sec => sec.id === prefs.section)) prefs.section = SECTIONS[0].id;
   if (prefs.level !== ALL && !LEVELS.includes(prefs.level)) prefs.level = ALL;
   prefs.seconds = Math.min(MAX_T, Math.max(MIN_T, Math.round(prefs.seconds / STEP_T) * STEP_T || 15));
   if (!prefs.cats || typeof prefs.cats !== 'object') prefs.cats = {};
   const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* ignore */ } };
 
-  const section = () => SECTIONS.find(sec => sec.id === prefs.section);
+  const section = () => SECTION_CHOICES.find(sec => sec.id === prefs.section);
   const allCats = (sec) => Object.keys(sec.categories);
   // The selected categories for the current section, in display order.
   function selectedCats() {
     const sec = section();
     const names = allCats(sec);
-    if (names.length < 2) return names; // nothing to choose between
+    if (names.length < 2 || sec === ALL_SECTION) return names; // nothing to choose between
     const saved = prefs.cats[sec.id];
     return Array.isArray(saved) ? names.filter(n => saved.includes(n)) : names;
   }
@@ -68,21 +77,21 @@
     b.querySelector('.label').textContent = label;
     return b;
   }
-  for (const sec of SECTIONS) els.sections.append(choiceButton(sec.name, { section: sec.id }));
+  for (const sec of SECTION_CHOICES) els.sections.append(choiceButton(sec.label || sec.name, { section: sec.id }));
   for (const lv of [...LEVELS, ALL]) els.levels.append(choiceButton(LEVEL_NAMES[lv], { level: lv }));
 
   function renderHome() {
     const sec = section();
     const cats = selectedCats();
     els.sections.querySelectorAll('.choice').forEach(b => {
-      const s = SECTIONS.find(x => x.id === b.dataset.section);
+      const s = SECTION_CHOICES.find(x => x.id === b.dataset.section);
       b.setAttribute('aria-checked', String(s === sec));
       b.querySelector('.count').textContent = pool(s, allCats(s), prefs.level).length;
     });
 
     // Category toggles are rebuilt per section; a one-category section skips them.
     const names = allCats(sec);
-    els.categoryPanel.hidden = names.length < 2;
+    els.categoryPanel.hidden = names.length < 2 || sec === ALL_SECTION;
     els.categories.replaceChildren(...names.map(n => {
       const b = choiceButton(n, { category: n });
       b.setAttribute('role', 'checkbox');
@@ -210,7 +219,7 @@
       : cats.length <= 2 ? cats.join(' + ')
       : `${cats.length} categories`;
     els.catLabel.textContent = `${scope} · ${LEVEL_NAMES[prefs.level]}`;
-    els.catLabel.title = many ? cats.join(', ') : '';
+    els.catLabel.title = many && sec !== ALL_SECTION ? cats.join(', ') : '';
     els.progress.textContent = `${(idx % roundSize) + 1} / ${roundSize}`;
     els.backBtn.disabled = idx === 0;
 
